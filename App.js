@@ -9,11 +9,30 @@ import session from "express-session";
 import CourseRoutes from "./Kanbas/Courses/routes.js";
 import ModuleRoutes from "./Kanbas/Modules/routes.js";
 import AssignmentRoutes from "./Kanbas/Assignments/routes.js";
+import mongoose from "mongoose";
+
+const CONNECTION_STRING = 
+    process.env.MONGO_CONNECTION_STRING || 
+    "mongodb://127.0.0.1:27017/kanbas-cs5610-fa24";
+mongoose.connect(CONNECTION_STRING);
 const app = express();
+const allowedOrigins = [
+    process.env.NETLIFY_URL,   
+    "http://localhost:3000",  
+    "http://localhost:3001"    
+].filter(Boolean);             
+
 app.use(cors({
     credentials: true,
-    origin: process.env.NETLIFY_URL || "http://localhost:3000",
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error(`Origin ${origin} not allowed by CORS`));
+        }
+    },
 }));
+
 const sessionOptions = {
     secret: process.env.SESSION_SECRET || "kanbas",
     resave: false,
@@ -27,13 +46,8 @@ if (process.env.NODE_ENV !== "development") {
         domain: process.env.NODE_SERVER_DOMAIN,
     };
 }
-app.use(session(sessionOptions));
-
-
 app.use(express.json());
-
-
-
+app.use(session(sessionOptions));
 HelloRoutes(app);
 Lab5(app);
 UserRoutes(app);
